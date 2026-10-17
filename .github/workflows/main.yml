@@ -1,0 +1,42 @@
+name: Build APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Générer le dossier android
+        run: |
+          flutter create --platforms=android --org com.soundbars --project-name soundbars _tmp
+          rm -rf android
+          cp -r _tmp/android android
+          rm -rf _tmp
+
+      - name: Configurer Android (micro, nom, minSdk)
+        run: python3 tools/patch_android.py
+
+      - run: flutter pub get
+      - run: dart run flutter_launcher_icons
+      - run: flutter build apk --release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SoundBars-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          
